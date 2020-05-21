@@ -1,0 +1,84 @@
+# Script to install KMM spectroscopy package - (c) Aleksey Kocherzhenko, 2014
+
+CWD=$(pwd)
+
+cd $HOME
+
+# Create directory $HOME/Applications/KMM, if it does not exist
+DIRECTORY="Applications"
+if [ ! -d "$DIRECTORY" ]
+then
+  mkdir Applications
+fi
+cd Applications
+
+DIRECTORY="KMM"
+if [ ! -d "$DIRECTORY" ]
+then
+  mkdir KMM
+fi
+
+cd $CWD
+cp *.cpp $HOME/Applications/KMM
+cp *.h $HOME/Applications/KMM
+cd $HOME/Applications/KMM
+
+# Remove zip file
+count=`ls -1 *.zip 2>/dev/null | wc -l`
+if [ $count != 0 ]
+then
+  rm *.zip
+fi
+
+# Compile the programs for linear spectroscopy
+g++ -c Initialize.cpp    # Matrix and vector initialization routines // Library //
+g++ -c Common.cpp        # Common functions for KMM spectroscopy programs (including complex arithmetic) // Library //
+g++ -c MatrixSetup.cpp   # Setup of the input matrix A (l.h.s.) and vector B (r.h.s.) for linear equation solver (also calculates infinite-limit Js and Ks)
+g++ -c LinEqSolver.cpp   # Fincitons for solving linear (matrix) equations // Library //
+g++ -c FiniteEqs.cpp     # Linear (matrix) equation solver for finite systems
+g++ -c WeakParams.cpp    # Calculation of parameters for the weak coupling regime
+g++ -c LineInt.cpp       # Calculation of transition intensities
+g++ -c EigSolverU.cpp    # Eigensolver for X(alpha1, alpha2) - a real matrix // Library //
+g++ -c VacCalc.cpp       # Calculation of vacuum overlap <Phi(-)|Phi(+)> for weak coupling and <Phi(-)|sigma(1,x)|Phi(+)> for strong coupling regime
+g++ -c HigherStrong.cpp  # Calculation of 4-excitation matrix elements in the strong coupling regime (beta)
+
+# Build the programs for linear spectroscopy
+g++ -o finiteEqs FiniteEqs.o Initialize.o Common.o LinEqSolver.o
+g++ -o matrixSetup MatrixSetup.o Initialize.o Common.o
+g++ -o weakParams WeakParams.o Initialize.o Common.o
+g++ -o lineInt LineInt.o Initialize.o Common.o 
+g++ -o vacCalc VacCalc.o Initialize.o Common.o EigSolverU.o
+g++ -o higherStrong HigherStrong.o Initialize.o Common.o LinEqSolver.o
+g++ -o minMax MinMax.cpp             # Determine range of E and k values, as well as the range of intensities
+g++ -o gridConvert GridConvert.cpp   # Convert scatter data to grid data for plotting
+g++ -o kmm KMM_Master.cpp
+
+# If directory scratch doesn't exist, create it
+DIRECTORY="scratch"
+if [ ! -d "$DIRECTORY" ]
+then
+  mkdir scratch
+fi
+cd scratch
+
+# If directory scratch/text doesn't exist, create it
+DIRECTORY="text"
+if [ ! -d "$DIRECTORY" ]
+then
+  mkdir text
+fi
+cd ..
+
+# Remove .o files
+rm *.o
+
+# Move source code to SourceCode
+DIRECTORY="SourceCode"
+if [ ! -d "$DIRECTORY" ]
+then
+  mkdir SourceCode
+fi
+
+mv *.cpp SourceCode/
+mv *.h SourceCode/
+
